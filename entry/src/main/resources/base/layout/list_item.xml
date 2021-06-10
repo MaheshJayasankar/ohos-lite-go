@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DirectionalLayout
+    ohos:height="match_content"
+    ohos:width="match_parent"
+    xmlns:ohos="http://schemas.huawei.com/res/ohos">
+    <Text
+        xmlns:ohos="http://schemas.huawei.com/res/ohos"
+        ohos:id="$+id:tv_item"
+        ohos:height="match_content"
+        ohos:width="match_parent"
+        ohos:min_width="100vp"
+        ohos:padding="12vp"
+        ohos:margin="8vp"
+        ohos:text_size="16vp"
+        ohos:text_alignment="vertical_center"
+        ohos:text_color="#1f1f1f"
+        ohos:text="$string:list_item_default_text"
+        ohos:background_element="#FFC6C6C6"/>
+</DirectionalLayout>

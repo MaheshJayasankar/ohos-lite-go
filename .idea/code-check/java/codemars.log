@@ -1,0 +1,30 @@
+2021-06-10 11:48:22.446 [main] INFO . - user input: D:\Program Files\Huawei\DevEco Studio 2.1.0.303\tools\openjdk\bin\java,-j,-source,@D:/DevEcoStudioProjects/LiteGoProject/.idea/code-check/java/detect.txt,-output,D:/DevEcoStudioProjects/LiteGoProject/.idea/code-check/java/output.xml
+2021-06-10 11:48:22.449 [main] INFO . - CodeMars Version:2.1.2.sp4
+2021-06-10 11:48:22.663 [main] INFO . - starting analyzing.
+2021-06-10 11:48:22.727 [main] INFO . - start collecting report.
+2021-06-10 11:48:22.747 [CodeMars1] INFO . - Command: "D:\Program Files\Huawei\DevEco Studio 2.1.0.303\plugins\codecheck\lib\CodeMars\engines\SecFinder-J\bin\run_SecFinder-J.bat",-filelist,D:\DevEcoStudioProjects\LiteGoProject\.idea\code-check\java\filelist_2021_06_10_11_48_22_728_1.txt,-f,xml,-default,-progress,-r,D:\DevEcoStudioProjects\LiteGoProject\.idea\code-check\java\\errorreport_2021_06_10_11_48_22_195_10.xml,-ruleclasspath,file:///D:\DevEcoStudioProjects\LiteGoProject\.idea\code-check\java\ruleclasspath.txt
+2021-06-10 11:48:23.666 [Thread-2] INFO . - Jun 10, 2021 11:48:23 AM com.huawei.secfinderj.SecFinderJ needScan
+2021-06-10 11:48:23.666 [Thread-2] INFO . - INFO: SecFinder-J Version: 2.1.3
+2021-06-10 11:48:23.914 [Thread-1] INFO . - 2021-06-10 11:48:23.807: SecFinder-J Output: Inspect start...
+2021-06-10 11:48:26.160 [Thread-1] INFO . - 2021-06-10 11:48:26.160: SecFinder-J Output: Load checkers...
+2021-06-10 11:48:26.541 [Thread-1] INFO . - 2021-06-10 11:48:26.541: SecFinder-J Output: Load config...
+2021-06-10 11:48:26.599 [Thread-1] INFO . - 2021-06-10 11:48:26.599: SecFinder-J Output: step 1/4: Find files
+2021-06-10 11:48:26.647 [Thread-1] INFO . - 2021-06-10 11:48:26.647: SecFinder-J Output: step 2/4: Process files
+2021-06-10 11:48:26.729 [Thread-1] INFO . - 2021-06-10 11:48:26.729: SecFinder-J Output: step 3/4: Run analysis...
+2021-06-10 11:48:26.731 [Thread-1] INFO . - 2021-06-10 11:48:26.730: SecFinder-J Output: [SecFinder-J--Thread--1] - during processing of [SmartExecutor.java]
+2021-06-10 11:48:28.087 [Thread-1] INFO . - 2021-06-10 11:48:28.087: SecFinder-J Output: step 4/4: Result output...
+2021-06-10 11:48:28.087 [Thread-1] INFO . - 2021-06-10 11:48:28.087: SecFinder-J Output: Inspect finish...
+2021-06-10 11:48:28.087 [Thread-1] INFO . - Analysis result:
+2021-06-10 11:48:28.087 [Thread-1] INFO . -     files analyzed      : 1
+2021-06-10 11:48:28.088 [Thread-2] INFO . - Jun 10, 2021 11:48:28 AM com.huawei.secfinderj.override.HwPmd end
+2021-06-10 11:48:28.088 [Thread-2] INFO . - INFO: SecFinder-J run successed!
+2021-06-10 11:48:28.091 [Thread-1] INFO . -     lines analyzed      : 409
+2021-06-10 11:48:28.091 [Thread-1] INFO . -     rules used          : 59
+2021-06-10 11:48:28.091 [Thread-1] INFO . -     issues detected     : 1
+2021-06-10 11:48:28.091 [Thread-1] INFO . -     time cost(sec)      : 4
+2021-06-10 11:48:28.091 [Thread-1] INFO . - 
+2021-06-10 11:48:28.192 [CodeMars1] INFO . - start parse errorreport xml
+2021-06-10 11:48:28.204 [CodeMars1] INFO . - parse xml time : 58
+2021-06-10 11:48:28.204 [CodeMars1] INFO . - end parse errorreport xml
+2021-06-10 11:48:28.208 [main] INFO . - end collecting report.
+2021-06-10 11:48:28.209 [main] INFO . - end analyzing.

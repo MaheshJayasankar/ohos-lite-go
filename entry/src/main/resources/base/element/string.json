@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "LiteGoProject"
+    },
+    {
+      "name": "mainability_description",
+      "value": "Java_Phone_Empty Feature Ability"
+    },
+    {
+      "name": "mainability_HelloWorld",
+      "value": "Hello World"
+    },
+    {
+      "name": "title",
+      "value": "Lite Lib: LiteGo"
+    },
+    {
+      "name": "sub_title",
+      "value": "see more via code and log."
+    },
+    {
+      "name": "list_item_default_text",
+      "value": "List Item Default Text"
+    }
+  ]
+}

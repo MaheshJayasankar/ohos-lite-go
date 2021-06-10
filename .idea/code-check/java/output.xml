@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RESULT>
+ <errors>
+  <error>
+   <defectInfo>
+     <category>不良代码质量</category>
+     <subCategory>编程规范违反</subCategory>
+     <issueType></issueType>
+     <checkerName>Insecure_Instance_Lock</checkerName>
+     <function><![CDATA[initThreadPool]]></function>
+     <reportLine>73</reportLine>
+     <folder><![CDATA[D:\DevEcoStudioProjects\LiteGoProject\harmony_os_lite_go\src\main\java\com\applibgroup\harmony_os_lite_go\]]></folder>
+     <fileName><![CDATA[D:\DevEcoStudioProjects\LiteGoProject\harmony_os_lite_go\src\main\java\com\applibgroup\harmony_os_lite_go\SmartExecutor.java]]></fileName>
+     <description><![CDATA[Programs must not use instance locks to protect static shared data (threadPool) because instance locks are ineffective when two or more instances of the class are created. Consequently, failure to use a static lock object leaves the shared state unprotected against concurrent access.]]></description>
+     <extra><![CDATA[]]></extra>
+     <mergeKey>49dcfe3f64d67ab9d8d8fcee7605d987</mergeKey>
+     <severity>Medium</severity>
+     <codeSnippet>
+         <content><![CDATA[    public SmartExecutor() {
+        initThreadPool();
+    }
+
+    public SmartExecutor(int coreSize, int queueSize) {
+        this.coreSize = coreSize;
+        this.queueSize = queueSize;
+        initThreadPool();
+    }
+
+    protected synchronized void initThreadPool() {
+        if (debug) {
+            Log.v(TAG, "SmartExecutor core-queue size: " + coreSize + " - " + queueSize
+                       + "  running-wait task: " + runningList.size() + " - " + waitingList.size());
+        }
+        if (threadPool == null) {
+            threadPool = createDefaultThreadPool();
+        }
+    }
+
+]]></content>
+         <startLine>63</startLine>
+         <endLine>82</endLine>
+     </codeSnippet>
+   </defectInfo>
+   <events/>
+  </error>
+ </errors>
+<filesCount>1</filesCount>
+<codeLines>409</codeLines>
+<timeCost>4</timeCost>
+<errorsCount>1</errorsCount>
+</RESULT>
