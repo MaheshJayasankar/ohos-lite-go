@@ -21,5 +21,5 @@ package com.applibgroup.harmony_os_lite_go;
  */
 public enum SchedulePolicy {
     LastInFirstRun,
-    FirstInFistRun
+    FirstInFirstRun
 }

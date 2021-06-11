@@ -47,53 +47,80 @@ public class SmartExecutor implements Executor {
      * HMOS Log parameters
      */
     private static final String TAG = SmartExecutor.class.getSimpleName();
+    private static final int DEFAULT_CACHE_SECOND = 5;
+    /**
+     * Static lock for synchronous static operations
+     */
+    private static final Object staticLock = new Object();
+
+    private static ThreadPoolExecutor threadPool;
     private final int DOMAIN = 0x00201;
     private final HiLogLabel infoLabel = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
     private final HiLogLabel errorLabel = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
-
+    /**
+     * Lock objects for synchronous operation
+     */
+    private final Object lock = new Object();
+    private final LinkedList<WrappedRunnable> runningList = new LinkedList<WrappedRunnable>();
+    private final LinkedList<WrappedRunnable> waitingList = new LinkedList<WrappedRunnable>();
     /**
      * To log Debug Messages like thread start details, task finished messages, etc.
      */
     private boolean debug = false;
-
-    private static final int CPU_CORE = GoUtil.getCoresCount();
-    private static final int DEFAULT_CACHE_SECOND = 5;
-    private static ThreadPoolExecutor threadPool;
-    private int coreSize = CPU_CORE;
-    private int queueSize = coreSize * 32;
-    private final Object lock = new Object();
-    private final static Object staticLock = new Object();
-    private LinkedList<WrappedRunnable> runningList = new LinkedList<WrappedRunnable>();
-    private LinkedList<WrappedRunnable> waitingList = new LinkedList<WrappedRunnable>();
-    private SchedulePolicy schedulePolicy = SchedulePolicy.FirstInFistRun;
+    /**
+     * Core size, or the maximum number of concurrent threads, as used by the SmartExecutor.
+     * By default, this equals the number of CPU cores.
+     */
+    private int coreSize;
+    private int queueSize;
+    private SchedulePolicy schedulePolicy = SchedulePolicy.FirstInFirstRun;
     private OverloadPolicy overloadPolicy = OverloadPolicy.DiscardOldTaskInQueue;
 
-
+    /**
+     * Create a SmartExecutor Object with number of cores equal to the CPU core count,
+     * length of waiting queue equal to 32 times number of cores.
+     */
     public SmartExecutor() {
+        coreSize = GoUtil.getCoresCount();
+        queueSize = coreSize * 32;
         initThreadPool();
     }
 
+    /**
+     * Create a SmartExecutor Object specifying number of cores and queue size.
+     *
+     * @param coreSize  Number of concurrent tasks
+     * @param queueSize Maximum number of tasks in the waiting queue
+     */
     public SmartExecutor(int coreSize, int queueSize) {
         this.coreSize = coreSize;
         this.queueSize = queueSize;
         initThreadPool();
     }
 
-    protected void initThreadPool() {
-        synchronized (staticLock){
-            if (debug) {
-                HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
-                        coreSize, queueSize, runningList.size(), waitingList.size());
-            }
-            if (threadPool == null) {
-                threadPool = createDefaultThreadPool();
-            }
-        }
+    /**
+     * Create a SmartExecutor Object specifying number of cores and queue size.
+     *
+     * @param coreSize       Number of concurrent tasks
+     * @param queueSize      Maximum number of tasks in the waiting queue
+     * @param schedulePolicy The policy used for scheduling a new task out of the waiting queue
+     * @param overloadPolicy The policy used for handling insertion of new task into queue when waiting queue is full
+     */
+    public SmartExecutor(int coreSize, int queueSize, SchedulePolicy schedulePolicy, OverloadPolicy overloadPolicy) {
+        this(coreSize, queueSize);
+        setSchedulePolicy(schedulePolicy);
+        setOverloadPolicy(overloadPolicy);
     }
 
-    public static ThreadPoolExecutor createDefaultThreadPool() {
-        // 控制最多4个keep在pool中
-        int corePoolSize = Math.min(4, CPU_CORE);
+    /**
+     * Create a ThreadPoolExecutor used internally to handle threads
+     *
+     * @return Reference to newly initialized ThreadPoolExecutor object
+     */
+    private static ThreadPoolExecutor createDefaultThreadPool() {
+        // Keep up to 4 threads in the pool
+        int coresCount = GoUtil.getCoresCount();
+        int corePoolSize = Math.min(4, coresCount);
         return new ThreadPoolExecutor(
                 corePoolSize,
                 Integer.MAX_VALUE,
@@ -111,6 +138,33 @@ public class SmartExecutor implements Executor {
                 new ThreadPoolExecutor.DiscardPolicy());
     }
 
+    public static ThreadPoolExecutor getThreadPool() {
+        return threadPool;
+    }
+
+    public static void setThreadPool(ThreadPoolExecutor threadPool) {
+        SmartExecutor.threadPool = threadPool;
+    }
+
+    /**
+     * Initializes the (static) thread pool if not already initialized by another instance of this object.
+     */
+    protected void initThreadPool() {
+        synchronized (staticLock) {
+            if (debug) {
+                HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
+                        coreSize, queueSize, runningList.size(), waitingList.size());
+            }
+            if (threadPool == null) {
+                threadPool = createDefaultThreadPool();
+            }
+        }
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
     /**
      * turn on or turn off debug mode
      */
@@ -118,18 +172,12 @@ public class SmartExecutor implements Executor {
         this.debug = debug;
     }
 
-    public boolean isDebug() {
-        return debug;
-    }
-
-    public static void setThreadPool(ThreadPoolExecutor threadPool) {
-        SmartExecutor.threadPool = threadPool;
-    }
-
-    public static ThreadPoolExecutor getThreadPool() {
-        return threadPool;
-    }
-
+    /**
+     * Cancels all instances of the task from the waiting queue, if existing.
+     *
+     * @param command The task to be cancelled
+     * @return If the task was cancelled or not
+     */
     public boolean cancelWaitingTask(Runnable command) {
         boolean removed = false;
         synchronized (lock) {
@@ -146,14 +194,16 @@ public class SmartExecutor implements Executor {
         return removed;
     }
 
-    interface WrappedRunnable extends Runnable {
-        Runnable getRealRunnable();
-    }
-
+    /**
+     * Create a runnable FutureTask
+     */
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
         return new FutureTask<T>(runnable, value);
     }
 
+    /**
+     * Create a callable FutureTask
+     */
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
         return new FutureTask<T>(callable);
     }
@@ -194,14 +244,12 @@ public class SmartExecutor implements Executor {
         return futureTask;
     }
 
-
     /**
      * submit RunnableFuture task
      */
     public <T> void submit(RunnableFuture<T> task) {
         execute(task);
     }
-
 
     /**
      * When {@link #execute(Runnable)} is called, {@link SmartExecutor} perform actions:
@@ -236,21 +284,12 @@ public class SmartExecutor implements Executor {
 
         boolean callerRun = false;
         synchronized (staticLock) {
-            //if (debug) {
-            //    Log.v(TAG, "SmartExecutor core-queue size: " + coreSize + " - " + queueSize
-            //                   + "  running-wait task: " + runningList.size() + " - " + waitingList.size());
-            //}
             if (runningList.size() < coreSize) {
                 runningList.add(scheduler);
                 threadPool.execute(scheduler);
-                //Log.v(TAG, "SmartExecutor task execute");
             } else if (waitingList.size() < queueSize) {
                 waitingList.addLast(scheduler);
-                //Log.v(TAG, "SmartExecutor task waiting");
             } else {
-                //if (debug) {
-                //    Log.w(TAG, "SmartExecutor overload , policy is: " + overloadPolicy);
-                //}
                 switch (overloadPolicy) {
                     case DiscardNewTaskInQueue:
                         waitingList.pollLast();
@@ -265,13 +304,12 @@ public class SmartExecutor implements Executor {
                         break;
                     case DiscardCurrentTask:
                         break;
-                    case ThrowExecption:
+                    case ThrowException:
                         throw new RuntimeException("Task rejected from lite smart executor. " + command.toString());
                     default:
                         break;
                 }
             }
-            //printThreadPoolInfo();
         }
         if (callerRun) {
             if (debug) {
@@ -284,10 +322,6 @@ public class SmartExecutor implements Executor {
     private void scheduleNext(WrappedRunnable scheduler) {
         synchronized (staticLock) {
             boolean suc = runningList.remove(scheduler);
-            //if (debug) {
-            //    Log.v(TAG, "Thread " + Thread.currentThread().getName()
-            //                   + " is completed. remove prior: " + suc + ", try schedule next..");
-            //}
             if (!suc) {
                 runningList.clear();
                 HiLog.error(errorLabel,
@@ -301,7 +335,7 @@ public class SmartExecutor implements Executor {
                     case LastInFirstRun:
                         waitingRun = waitingList.pollLast();
                         break;
-                    case FirstInFistRun:
+                    case FirstInFirstRun:
                         waitingRun = waitingList.pollFirst();
                         break;
                     default:
@@ -324,12 +358,14 @@ public class SmartExecutor implements Executor {
                 if (debug) {
                     HiLog.info(infoLabel, "SmartExecutor: All tasks are completed. Current thread: %{public}s",
                             Thread.currentThread().getName());
-                    //printThreadPoolInfo();
                 }
             }
         }
     }
 
+    /**
+     * Logs information about the threadPool attached to this object. Has no effect if {@link #debug} is {@code false}
+     */
     public void printThreadPoolInfo() {
         if (debug) {
 
@@ -349,31 +385,29 @@ public class SmartExecutor implements Executor {
         return coreSize;
     }
 
+    /**
+     * Set maximum number of concurrent tasks at the same time.
+     * Recommended core size is CPU count.
+     *
+     * @param coreSize number of concurrent tasks at the same time
+     */
+    public void setCoreSize(int coreSize) {
+        if (coreSize <= 0) {
+            throw new IllegalArgumentException("coreSize can not be <= 0 !");
+        }
+        this.coreSize = coreSize;
+        if (debug) {
+            HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
+                    coreSize, queueSize, runningList.size(), waitingList.size());
+        }
+    }
+
     public int getRunningSize() {
         return runningList.size();
     }
 
     public int getWaitingSize() {
         return waitingList.size();
-    }
-
-    /**
-     * Set maximum number of concurrent tasks at the same time.
-     * Recommended core size is CPU count.
-     *
-     * @param coreSize number of concurrent tasks at the same time
-     * @return this
-     */
-    public SmartExecutor setCoreSize(int coreSize) {
-        if (coreSize <= 0) {
-            throw new IllegalArgumentException("coreSize can not be <= 0 !");
-        }
-        this.coreSize = coreSize;
-        if (debug) {
-            HiLog.info(infoLabel,"SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
-                    coreSize, queueSize, runningList.size(), waitingList.size());
-        }
-        return this;
     }
 
     public int getQueueSize() {
@@ -385,9 +419,8 @@ public class SmartExecutor implements Executor {
      * For example: CPU count * 32;
      *
      * @param queueSize waiting queue size
-     * @return this
      */
-    public SmartExecutor setQueueSize(int queueSize) {
+    public void setQueueSize(int queueSize) {
         if (queueSize < 0) {
             throw new NullPointerException("queueSize can not < 0 !");
         }
@@ -397,9 +430,7 @@ public class SmartExecutor implements Executor {
             HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                     coreSize, queueSize, runningList.size(), waitingList.size());
         }
-        return this;
     }
-
 
     public OverloadPolicy getOverloadPolicy() {
         return overloadPolicy;
@@ -421,6 +452,10 @@ public class SmartExecutor implements Executor {
             throw new NullPointerException("SchedulePolicy can not be null !");
         }
         this.schedulePolicy = schedulePolicy;
+    }
+
+    interface WrappedRunnable extends Runnable {
+        Runnable getRealRunnable();
     }
 
 }

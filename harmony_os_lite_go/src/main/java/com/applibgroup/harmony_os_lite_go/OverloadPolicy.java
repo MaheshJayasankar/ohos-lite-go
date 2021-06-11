@@ -15,7 +15,6 @@
  */
 package com.applibgroup.harmony_os_lite_go;
 
-
 /**
  * Policy of thread-pool-executor overload.
  *
@@ -27,5 +26,5 @@ public enum OverloadPolicy {
     DiscardOldTaskInQueue,
     DiscardCurrentTask,
     CallerRuns,
-    ThrowExecption
+    ThrowException
 }

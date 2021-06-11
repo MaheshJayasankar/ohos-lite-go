@@ -1,8 +1,5 @@
 package com.applibgroup.harmony_os_lite_go.utils;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import static ohos.os.ProcessManager.getAvailableCores;
 
 /**
@@ -11,11 +8,6 @@ import static ohos.os.ProcessManager.getAvailableCores;
  */
 public class GoUtil {
     private static int CPU_CORES = 0;
-
-    public static String formatDate(long millis) {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return format.format(new Date(millis));
-    }
 
     /**
      * Get available processors.
