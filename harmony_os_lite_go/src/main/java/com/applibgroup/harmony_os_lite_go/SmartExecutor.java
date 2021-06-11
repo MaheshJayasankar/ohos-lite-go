@@ -16,8 +16,7 @@
 package com.applibgroup.harmony_os_lite_go;
 
 import com.applibgroup.harmony_os_lite_go.utils.GoUtil;
-import ohos.hiviewdfx.HiLog;
-import ohos.hiviewdfx.HiLogLabel;
+import com.applibgroup.harmony_os_lite_go.utils.LogHelper;
 
 import java.util.LinkedList;
 import java.util.concurrent.*;
@@ -47,6 +46,9 @@ public class SmartExecutor implements Executor {
      * HMOS Log parameters
      */
     private static final String TAG = SmartExecutor.class.getSimpleName();
+    private final int DOMAIN = 0x00201;
+    private final LogHelper logHelper = new LogHelper(DOMAIN, TAG);
+
     private static final int DEFAULT_CACHE_SECOND = 5;
     /**
      * Static lock for synchronous static operations
@@ -54,15 +56,12 @@ public class SmartExecutor implements Executor {
     private static final Object staticLock = new Object();
 
     private static ThreadPoolExecutor threadPool;
-    private final int DOMAIN = 0x00201;
-    private final HiLogLabel infoLabel = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
-    private final HiLogLabel errorLabel = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
     /**
      * Lock objects for synchronous operation
      */
     private final Object lock = new Object();
-    private final LinkedList<WrappedRunnable> runningList = new LinkedList<WrappedRunnable>();
-    private final LinkedList<WrappedRunnable> waitingList = new LinkedList<WrappedRunnable>();
+    private final LinkedList<WrappedRunnable> runningList = new LinkedList<>();
+    private final LinkedList<WrappedRunnable> waitingList = new LinkedList<>();
     /**
      * To log Debug Messages like thread start details, task finished messages, etc.
      */
@@ -125,7 +124,7 @@ public class SmartExecutor implements Executor {
                 corePoolSize,
                 Integer.MAX_VALUE,
                 DEFAULT_CACHE_SECOND, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(),
+                new SynchronousQueue<>(),
                 new ThreadFactory() {
                     static final String NAME = "lite-";
                     AtomicInteger IDS = new AtomicInteger(1);
@@ -152,7 +151,7 @@ public class SmartExecutor implements Executor {
     protected void initThreadPool() {
         synchronized (staticLock) {
             if (debug) {
-                HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
+                logHelper.logInfo("SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                         coreSize, queueSize, runningList.size(), waitingList.size());
             }
             if (threadPool == null) {
@@ -198,14 +197,14 @@ public class SmartExecutor implements Executor {
      * Create a runnable FutureTask
      */
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new FutureTask<T>(runnable, value);
+        return new FutureTask<>(runnable, value);
     }
 
     /**
      * Create a callable FutureTask
      */
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new FutureTask<T>(callable);
+        return new FutureTask<>(callable);
     }
 
     /**
@@ -252,7 +251,7 @@ public class SmartExecutor implements Executor {
     }
 
     /**
-     * When {@link #execute(Runnable)} is called, {@link SmartExecutor} perform actions:
+     * When this method is called, {@link SmartExecutor} will perform action as per:
      * <ol>
      * <li>if fewer than {@link #coreSize} tasks are running, post new task in {@link #runningList} and execute it immediately.</li>
      * <li>if more than {@link #coreSize} tasks are running, and fewer than {@link #queueSize} tasks are waiting, put task in {@link #waitingList}.</li>
@@ -266,21 +265,7 @@ public class SmartExecutor implements Executor {
             return;
         }
 
-        WrappedRunnable scheduler = new WrappedRunnable() {
-            @Override
-            public Runnable getRealRunnable() {
-                return command;
-            }
-
-            @Override
-            public void run() {
-                try {
-                    command.run();
-                } finally {
-                    scheduleNext(this);
-                }
-            }
-        };
+        WrappedRunnable scheduler = new WrappedRunnable(command);
 
         boolean callerRun = false;
         synchronized (staticLock) {
@@ -290,13 +275,18 @@ public class SmartExecutor implements Executor {
             } else if (waitingList.size() < queueSize) {
                 waitingList.addLast(scheduler);
             } else {
+                WrappedRunnable discardedTask;
                 switch (overloadPolicy) {
                     case DiscardNewTaskInQueue:
-                        waitingList.pollLast();
+                        discardedTask = waitingList.pollLast();
+                        if (discardedTask != null)
+                            discardedTask.setCancelled();
                         waitingList.addLast(scheduler);
                         break;
                     case DiscardOldTaskInQueue:
-                        waitingList.pollFirst();
+                        discardedTask = waitingList.pollFirst();
+                        if (discardedTask != null)
+                            discardedTask.setCancelled();
                         waitingList.addLast(scheduler);
                         break;
                     case CallerRuns:
@@ -313,7 +303,7 @@ public class SmartExecutor implements Executor {
         }
         if (callerRun) {
             if (debug) {
-                HiLog.info(infoLabel, "SmartExecutor task running in caller thread");
+                logHelper.logInfo( "SmartExecutor task running in caller thread");
             }
             command.run();
         }
@@ -324,7 +314,7 @@ public class SmartExecutor implements Executor {
             boolean suc = runningList.remove(scheduler);
             if (!suc) {
                 runningList.clear();
-                HiLog.error(errorLabel,
+                logHelper.logError(
                         "SmartExecutor scheduler remove failed. Please clear all running tasks to avoid unpredictable error : %{public}s",
                         scheduler);
 
@@ -345,19 +335,45 @@ public class SmartExecutor implements Executor {
                 if (waitingRun != null) {
                     runningList.add(waitingRun);
                     threadPool.execute(waitingRun);
-
-                    HiLog.info(infoLabel, "Thread %{public}s is executing the next task...",
+                    if (debug) {
+                        logHelper.logInfo("Thread %{public}s is executing the next task...",
                             Thread.currentThread().getName());
+                    }
 
                 } else {
-                    HiLog.error(errorLabel, "SmartExecutor got a NULL task from waiting queue: %{public}s",
-                            Thread.currentThread().getName());
-
+                    if (debug) {
+                        logHelper.logError("SmartExecutor got a NULL task from waiting queue: %{public}s",
+                                Thread.currentThread().getName());
+                    }
                 }
             } else {
                 if (debug) {
-                    HiLog.info(infoLabel, "SmartExecutor: All tasks are completed. Current thread: %{public}s",
+                    logHelper.logInfo("SmartExecutor: All tasks are completed. Current thread: %{public}s",
                             Thread.currentThread().getName());
+                }
+            }
+        }
+    }
+
+    /**
+     * Function will await the current thread until ALL tasks in the waiting list AND running list are completed, cancelled, or interrupted.
+     */
+    public void awaitAll() {
+        while (!waitingList.isEmpty()){
+            synchronized (waitingList.getFirst()) {
+                try {
+                    waitingList.getFirst().wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        while (!runningList.isEmpty()){
+            synchronized (runningList.getFirst()) {
+                try {
+                    runningList.getFirst().wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -369,14 +385,14 @@ public class SmartExecutor implements Executor {
     public void printThreadPoolInfo() {
         if (debug) {
 
-            HiLog.info(infoLabel, "___________________________");
-            HiLog.info(infoLabel, "state (shutdown - terminating - terminated): %{public}s - %{public}s - %{public}s",
+            logHelper.logInfo("___________________________");
+            logHelper.logInfo("state (shutdown - terminating - terminated): %{public}s - %{public}s - %{public}s",
                     threadPool.isShutdown(), threadPool.isTerminating(), threadPool.isTerminated());
-            HiLog.info(infoLabel, "pool size (core - max): %{public}d - %{public}d}",
+            logHelper.logInfo("pool size (core - max): %{public}d - %{public}d}",
                     threadPool.getCorePoolSize(), threadPool.getMaximumPoolSize());
-            HiLog.info(infoLabel, "task (active - complete - total): %{public}d - %{public}d - %{public}d",
+            logHelper.logInfo("task (active - complete - total): %{public}d - %{public}d - %{public}d",
                     threadPool.getActiveCount(), threadPool.getCompletedTaskCount(), threadPool.getTaskCount());
-            HiLog.info(infoLabel, "waitingList size : %{public}d , %{public}s",
+            logHelper.logInfo("waitingList size : %{public}d , %{public}s",
                     threadPool.getQueue().size(), threadPool.getQueue());
         }
     }
@@ -397,7 +413,7 @@ public class SmartExecutor implements Executor {
         }
         this.coreSize = coreSize;
         if (debug) {
-            HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
+            logHelper.logInfo("SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                     coreSize, queueSize, runningList.size(), waitingList.size());
         }
     }
@@ -427,7 +443,7 @@ public class SmartExecutor implements Executor {
 
         this.queueSize = queueSize;
         if (debug) {
-            HiLog.info(infoLabel, "SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
+            logHelper.logInfo("SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                     coreSize, queueSize, runningList.size(), waitingList.size());
         }
     }
@@ -454,8 +470,57 @@ public class SmartExecutor implements Executor {
         this.schedulePolicy = schedulePolicy;
     }
 
-    interface WrappedRunnable extends Runnable {
-        Runnable getRealRunnable();
+    class WrappedRunnable implements Runnable{
+
+        private final Runnable realRunnable;
+
+        private boolean started = false;
+        private boolean completed = false;
+        private boolean cancelled = false;
+
+        public boolean isStarted() {
+            return started;
+        }
+
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        public WrappedRunnable(Runnable command) {
+            super();
+            realRunnable = command;
+        }
+
+        public Runnable getRealRunnable() {
+            return realRunnable;
+        }
+
+        @Override
+        public void run() {
+            synchronized (this){
+                started = true;
+            }
+            try {
+                realRunnable.run();
+            } finally {
+                scheduleNext(this);
+                synchronized (this) {
+                    completed = true;
+                    notify();
+                }
+            }
+        }
+
+        public void setCancelled() {
+            synchronized (this){
+                cancelled = true;
+                notify();
+            }
+        }
     }
 
 }
