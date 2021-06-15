@@ -13,3 +13,9 @@
 .externalNativeBuild
 /entry/.preview
 .cxx
+
+/.idea
+build.gradle
+settings.gradle
+gradle.properties
+gradlew*
