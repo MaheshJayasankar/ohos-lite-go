@@ -1,1 +1,0 @@
-D:/DevEcoStudioProjects/LiteGoProject/harmony_os_lite_go/src/main/java/com/applibgroup/harmony_os_lite_go/SmartExecutor.java

@@ -23,7 +23,9 @@ public class SmartExecutorTest {
         assert(smartExecutor1.getCoreSize() > 0);
         SmartExecutor smartExecutor2 = new SmartExecutor(2,2);
         assert(smartExecutor2.getCoreSize() > 0);
-        SmartExecutor smartExecutor3 = new SmartExecutor(2,2, SchedulePolicy.FirstInFirstRun, OverloadPolicy.DiscardNewTaskInQueue);
+        SmartExecutor smartExecutor3 = new SmartExecutor(2,2);
+        smartExecutor3.setSchedulePolicy(SchedulePolicy.FirstInFirstRun);
+        smartExecutor3.setOverloadPolicy(OverloadPolicy.DiscardNewTaskInQueue);
         assert(smartExecutor3.getCoreSize() > 0);
     }
 }

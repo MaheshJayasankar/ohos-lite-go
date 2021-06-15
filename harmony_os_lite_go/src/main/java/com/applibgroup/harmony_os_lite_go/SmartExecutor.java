@@ -98,20 +98,6 @@ public class SmartExecutor implements Executor {
     }
 
     /**
-     * Create a SmartExecutor Object specifying number of cores and queue size.
-     *
-     * @param coreSize       Number of concurrent tasks
-     * @param queueSize      Maximum number of tasks in the waiting queue
-     * @param schedulePolicy The policy used for scheduling a new task out of the waiting queue
-     * @param overloadPolicy The policy used for handling insertion of new task into queue when waiting queue is full
-     */
-    public SmartExecutor(int coreSize, int queueSize, SchedulePolicy schedulePolicy, OverloadPolicy overloadPolicy) {
-        this(coreSize, queueSize);
-        setSchedulePolicy(schedulePolicy);
-        setOverloadPolicy(overloadPolicy);
-    }
-
-    /**
      * Create a ThreadPoolExecutor used internally to handle threads
      *
      * @return Reference to newly initialized ThreadPoolExecutor object
@@ -406,8 +392,9 @@ public class SmartExecutor implements Executor {
      * Recommended core size is CPU count.
      *
      * @param coreSize number of concurrent tasks at the same time
+     * @return this
      */
-    public void setCoreSize(int coreSize) {
+    public SmartExecutor setCoreSize(int coreSize) {
         if (coreSize <= 0) {
             throw new IllegalArgumentException("coreSize can not be <= 0 !");
         }
@@ -416,6 +403,7 @@ public class SmartExecutor implements Executor {
             logHelper.logInfo("SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                     coreSize, queueSize, runningList.size(), waitingList.size());
         }
+        return this;
     }
 
     public int getRunningSize() {
@@ -435,8 +423,9 @@ public class SmartExecutor implements Executor {
      * For example: CPU count * 32;
      *
      * @param queueSize waiting queue size
+     * @return this
      */
-    public void setQueueSize(int queueSize) {
+    public SmartExecutor setQueueSize(int queueSize) {
         if (queueSize < 0) {
             throw new NullPointerException("queueSize can not < 0 !");
         }
@@ -446,6 +435,7 @@ public class SmartExecutor implements Executor {
             logHelper.logInfo("SmartExecutor core-queue size: %{public}d - %{public}d  running-wait task: %{public}d - %{public}d",
                     coreSize, queueSize, runningList.size(), waitingList.size());
         }
+        return this;
     }
 
     public OverloadPolicy getOverloadPolicy() {
