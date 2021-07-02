@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class SmartExecutorTest {
     @BeforeClass
     public static void setUpTestEnvironment()
@@ -23,20 +26,20 @@ public class SmartExecutorTest {
         SmartExecutor smartExecutor = new SmartExecutor();
         int goUtilCoresCount = GoUtil.getCoresCount();
         int smartExecutorCoreSize = smartExecutor.getCoreSize();
-        assert(goUtilCoresCount > 0);
-        assert(goUtilCoresCount == smartExecutorCoreSize);
+        assertTrue(goUtilCoresCount > 0);
+        assertEquals(goUtilCoresCount, smartExecutorCoreSize);
     }
     @Test
     public void testSmartExecutorInit()
     {
         SmartExecutor smartExecutor1 = new SmartExecutor();
-        assert(smartExecutor1.getCoreSize() > 0);
+        assertTrue(smartExecutor1.getCoreSize() > 0);
         SmartExecutor smartExecutor2 = new SmartExecutor(2,2);
-        assert(smartExecutor2.getCoreSize() > 0);
+        assertTrue(smartExecutor2.getCoreSize() > 0);
         SmartExecutor smartExecutor3 = new SmartExecutor(2,2);
         smartExecutor3.setSchedulePolicy(SchedulePolicy.FirstInFirstRun);
         smartExecutor3.setOverloadPolicy(OverloadPolicy.DiscardNewTaskInQueue);
-        assert(smartExecutor3.getCoreSize() > 0);
+        assertTrue(smartExecutor3.getCoreSize() > 0);
     }
     @Test
     public void testOverloadPolicy(){
@@ -44,13 +47,13 @@ public class SmartExecutorTest {
         TaskListExecutionResult discardOldPolicyResult =  runSequenceOfTestTasks(6, SchedulePolicy.FirstInFirstRun, OverloadPolicy.DiscardOldTaskInQueue);
         List<Integer> discardOldPolicyTaskFinishedOrder = discardOldPolicyResult.getTasksFinishedOrder();
 
-        assert discardOldPolicyExpectedTaskFinishedOrder.equals(discardOldPolicyTaskFinishedOrder);
+        assertEquals(discardOldPolicyExpectedTaskFinishedOrder, discardOldPolicyTaskFinishedOrder);
 
         List<Integer> discardNewPolicyExpectedTaskFinishedOrder = Arrays.asList(0,1,2,5);
         TaskListExecutionResult discardNewPolicyResult =  runSequenceOfTestTasks(6, SchedulePolicy.FirstInFirstRun, OverloadPolicy.DiscardNewTaskInQueue);
         List<Integer> discardNewPolicyTaskFinishedOrder = discardNewPolicyResult.getTasksFinishedOrder();
 
-        assert discardNewPolicyExpectedTaskFinishedOrder.equals(discardNewPolicyTaskFinishedOrder);
+        assertEquals(discardNewPolicyExpectedTaskFinishedOrder, discardNewPolicyTaskFinishedOrder);
     }
     @Test
     public void testSchedulePolicy(){
@@ -58,13 +61,13 @@ public class SmartExecutorTest {
         TaskListExecutionResult firstInFirstRunResult =  runSequenceOfTestTasks(6, SchedulePolicy.FirstInFirstRun, OverloadPolicy.DiscardOldTaskInQueue);
         List<Integer> firstInFirstRunTaskStartedOrder = firstInFirstRunResult.getTasksStartedOrder();
 
-        assert firstInFirstRunExpectedTaskStartedOrder.equals(firstInFirstRunTaskStartedOrder);
+        assertEquals(firstInFirstRunExpectedTaskStartedOrder, firstInFirstRunTaskStartedOrder);
 
         List<Integer> lastInFirstRunExpectedTaskStartedOrder = Arrays.asList(0,1,5,4);
         TaskListExecutionResult lastInFirstRunResult =  runSequenceOfTestTasks(6, SchedulePolicy.LastInFirstRun, OverloadPolicy.DiscardOldTaskInQueue);
         List<Integer> lastInFirstRunTaskStartedOrder = lastInFirstRunResult.getTasksStartedOrder();
 
-        assert lastInFirstRunExpectedTaskStartedOrder.equals(lastInFirstRunTaskStartedOrder);
+        assertEquals(lastInFirstRunExpectedTaskStartedOrder, lastInFirstRunTaskStartedOrder);
     }
 
     private TaskListExecutionResult runSequenceOfTestTasks(int numTasks, SchedulePolicy schedulePolicy, OverloadPolicy overloadPolicy) {

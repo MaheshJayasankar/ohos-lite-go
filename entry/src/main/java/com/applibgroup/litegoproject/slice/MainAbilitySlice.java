@@ -70,7 +70,7 @@ public class MainAbilitySlice extends AbilitySlice {
             mainExecutor = new SmartExecutor();
 
             // To turn on Debugging and Logging features. It is recommended to turn off in production.
-            mainExecutor.setDebug(true);
+            mainExecutor.setLoggerEnabled(true);
 
             // number of concurrent threads at the same time, recommended core size is CPU count
             mainExecutor.setCoreSize(2);
@@ -154,7 +154,7 @@ public class MainAbilitySlice extends AbilitySlice {
                 // [waiting queue], the overload strategy is executed: the oldest task in the queue is discarded.
                 smallExecutor.setOverloadPolicy(OverloadPolicy.DiscardOldTaskInQueue);
 
-                smallExecutor.setDebug(true);
+                smallExecutor.setLoggerEnabled(true);
 
                 // put in 4 tasks at once
                 for (int i = 0; i < 4; i++) {

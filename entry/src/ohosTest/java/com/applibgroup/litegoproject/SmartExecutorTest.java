@@ -31,7 +31,7 @@ public class SmartExecutorTest {
     public void testSmartExecutorDebugMode()
     {
         SmartExecutor smartExecutor = new SmartExecutor();
-        smartExecutor.setDebug(true);
+        smartExecutor.setLoggerEnabled(true);
 
         smartExecutor.execute(() -> {
             try {
