@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.applibgroup.litegoproject",
-    "vendor": "applibgroup",
+    "bundleName": "com.litesuits.go",
+    "vendor": "litesuits",
     "version": {
       "code": 1000000,
       "name": "1.0.0"
@@ -22,7 +22,8 @@
     "distro": {
       "deliveryWithInstall": true,
       "moduleName": "entry",
-      "moduleType": "entry"
+      "moduleType": "entry",
+      "installationFree":true
     },
     "abilities": [
       {
