@@ -1,4 +1,4 @@
-# hmos-lite-go
+# ohos-lite-go
 LiteGo is a Java-based asynchronous concurrency library. It has a smart executor, which can be freely set the maximum number of concurrent tasks, and the number of threads in waiting queue. It can also set waiting policies and overload strategies. LiteGo can directly utilise Runnable, Callable, FutureTask and other types of implementations to run a task. Its core component is the "SmartExecutor", which can be used as the sole component in the Application that supports asynchronous concurrency. There can be multiple instances of SmartExecutor in an Application, and each instance has complete "independence", in the sense of independent core concurrency, queuing and waiting indicators, independent task scheduling and waiting list overloading strategy. However, all instances share a thread pool. This mechanism not only meets the independent needs of different modules for thread control and task scheduling, but also shares a pool resource to save overhead, saves resources and reuses threads to the greatest extent, and helps improve performance.
 
 # Source
@@ -88,23 +88,14 @@ future.cancel(false);
 
 
 
-In the above code, five tasks of 0, 1, 2, 3, 4 are invested in sequence at a time. Note that task 4 is the last to be invested and returns a Future object.
+In the above code, five tasks of 0, 1, 2, 3, 4 are inserted in sequence at a time. Note that task 4 is the last to be inserted and returns a Future object.
 
-According to the settings, 0 and 1 will be executed immediately. After the execution is full, 2, 3 will enter the queue. After the queue is full, the independently input task 4 will come. The oldest task 2 in the queue will be removed, and the queue will be 3 and 4.
+According to the settings, 0 and 1 will be executed immediately. While they are being executed, 2 and 3 will enter the queue. This results in the queue being full, at which point the independently input task 4 will enter. Based on the current overload policy, the oldest task 2 in the queue will be removed, and the queue will consist of only 3 and 4.
 
-Because 4 was subsequently cancelled, the final output:
+Because 4 was subsequently cancelled, it will not completely execute. The final output:
 
 ```java
 TASK 0 is running now ----------->
 TASK 1 is running now ----------->
 TASK 3 is running now ----------->
 ```
-
-
-
-## Future work
-*****Current unsupported features are something which we will implement in future, if there are no features dont add this
-
-License
---------
-****** If the Original readME has license add here else we can remove this section
