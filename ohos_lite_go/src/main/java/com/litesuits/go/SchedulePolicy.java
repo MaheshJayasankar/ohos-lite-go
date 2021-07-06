@@ -17,10 +17,19 @@
 package com.litesuits.go;
 
 /**
+ * Enumerates the different Schedule Policies available to decide which task is to be executed
+ * next out of the waiting queue for a {@link SmartExecutor} object.
+ *
  * @author MaTianyu
  * @date 2015-04-23
  */
 public enum SchedulePolicy {
-    LastInFirstRun,
-    FirstInFirstRun
+    /**
+     * The last task to be added to the waiting queue will be run first.
+     */
+    LAST_IN_FIRST_RUN,
+    /**
+     * The first task to be added to the waiting queue will be run first.
+     */
+    FIRST_IN_FIRST_RUN
 }

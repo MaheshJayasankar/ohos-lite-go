@@ -3,6 +3,8 @@ package com.litesuits.go.utils;
 import static ohos.os.ProcessManager.getAvailableCores;
 
 /**
+ * Class containing Utility functions for LiteGo.
+ *
  * @author MaTianyu
  * @date 2015-04-21
  */
@@ -45,6 +47,12 @@ public class GoUtil {
         return testingEnv;
     }
 
+    /**
+     * Sets whether or not to use the testing environment. This affects the number of CPU cores used by the
+     * SmartExecutor objects.
+     *
+     * @param testingEnv Whether testing environment is to be enabled or disabled
+     */
     public static void setTestingEnv(boolean testingEnv) {
         GoUtil.testingEnv = testingEnv;
     }

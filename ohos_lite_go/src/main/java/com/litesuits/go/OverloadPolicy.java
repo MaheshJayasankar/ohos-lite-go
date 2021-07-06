@@ -17,15 +17,31 @@
 package com.litesuits.go;
 
 /**
- * Policy of thread-pool-executor overload.
+ * Enumerates the different Overload Policies available to handle the case when the waiting queue of tasks is full and
+ * a new task is added for a {@link SmartExecutor} object.
  *
  * @author MaTianyu
  * @date 2015-04-23
  */
 public enum OverloadPolicy {
-    DiscardNewTaskInQueue,
-    DiscardOldTaskInQueue,
-    DiscardCurrentTask,
-    CallerRuns,
-    ThrowException
+    /**
+     * Discard the latest added task to the queue, to make space for the new task.
+     */
+    DISCARD_NEW_TASK_IN_QUEUE,
+    /**
+     * Discard the oldest added task to the queue, to make space for the new task.
+     */
+    DISCARD_OLD_TASK_IN_QUEUE,
+    /**
+     * Discard the task to be added, and leave the queue unchanged.
+     */
+    DISCARD_CURRENT_TASK,
+    /**
+     * Run the task to be added directly without adding it to the queue. This may cause unpredictable behaviour.
+     */
+    CALLER_RUNS,
+    /**
+     * Throws a TaskOverloadException which extends RuntimeException if the queue is attempted to be overloaded.
+     */
+    THROW_EXCEPTION
 }

@@ -80,12 +80,17 @@ public class SmartExecutor implements Executor {
      */
     private int coreSize;
     private int queueSize;
-    private SchedulePolicy schedulePolicy = SchedulePolicy.FirstInFirstRun;
-    private OverloadPolicy overloadPolicy = OverloadPolicy.DiscardOldTaskInQueue;
+    private SchedulePolicy schedulePolicy = SchedulePolicy.FIRST_IN_FIRST_RUN;
+    private OverloadPolicy overloadPolicy = OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE;
 
     /**
      * Create a SmartExecutor Object with number of cores equal to the CPU core count,
      * length of waiting queue equal to 32 times number of cores.
+     * <br/>
+     * <br/>
+     * The default {@link OverloadPolicy} is {@code DISCARD_OLD_TASK_IN_QUEUE}.
+     * <br/>
+     * The default {@link SchedulePolicy} is {@code FIRST_IN_FIRST_RUN}.
      */
     public SmartExecutor() {
         coreSize = GoUtil.getCoresCount();
@@ -95,6 +100,11 @@ public class SmartExecutor implements Executor {
 
     /**
      * Create a SmartExecutor Object specifying number of cores and queue size.
+     * <br/>
+     * <br/>
+     * The default {@link OverloadPolicy} is {@code DISCARD_OLD_TASK_IN_QUEUE}.
+     * <br/>
+     * The default {@link SchedulePolicy} is {@code FIRST_IN_FIRST_RUN}.
      *
      * @param coreSize  Number of concurrent tasks
      * @param queueSize Maximum number of tasks in the waiting queue
@@ -179,7 +189,9 @@ public class SmartExecutor implements Executor {
             if (size > 0) {
                 for (int i = size - 1; i >= 0; i--) {
                     if (waitingList.get(i).getRealRunnable() == command) {
-                        waitingList.remove(i);
+                        synchronized (waitingList) {
+                            waitingList.remove(i);
+                        }
                         removed = true;
                     }
                 }
@@ -207,7 +219,7 @@ public class SmartExecutor implements Executor {
      *
      * @param task The Runnable to be executed.
      */
-    public RunnableFuture<Void> submit(Runnable task) {
+    public Future<Void> submit(Runnable task) {
         RunnableFuture<Void> futureTask = newTaskFor(task, null);
         execute(futureTask);
         return futureTask;
@@ -215,7 +227,7 @@ public class SmartExecutor implements Executor {
 
     /**
      * Creates a {@code FutureTask} that will, upon running, execute the
-     * given {@code Runnable}, and arrange that {@code get} will return the
+     * given {@code Runnable}, and following that, {@code get} will return the
      * given result on successful completion.
      *
      * @param task   The runnable task to be submitted.
@@ -280,33 +292,41 @@ public class SmartExecutor implements Executor {
         boolean callerRun = false;
         synchronized (staticLock) {
             if (runningList.size() < coreSize) {
-                runningList.add(scheduler);
+                synchronized (runningList) {
+                    runningList.add(scheduler);
+                }
                 threadPool.execute(scheduler);
             } else if (waitingList.size() < queueSize) {
-                waitingList.addLast(scheduler);
+                synchronized (waitingList) {
+                    waitingList.addLast(scheduler);
+                }
             } else {
                 WrappedRunnable discardedTask;
                 switch (overloadPolicy) {
-                    case DiscardNewTaskInQueue:
+                    case DISCARD_NEW_TASK_IN_QUEUE:
                         discardedTask = waitingList.pollLast();
                         if (discardedTask != null) {
                             discardedTask.setCancelled();
                         }
-                        waitingList.addLast(scheduler);
+                        synchronized (waitingList) {
+                            waitingList.addLast(scheduler);
+                        }
                         break;
-                    case DiscardOldTaskInQueue:
+                    case DISCARD_OLD_TASK_IN_QUEUE:
                         discardedTask = waitingList.pollFirst();
                         if (discardedTask != null) {
                             discardedTask.setCancelled();
                         }
-                        waitingList.addLast(scheduler);
+                        synchronized (waitingList) {
+                            waitingList.addLast(scheduler);
+                        }
                         break;
-                    case CallerRuns:
+                    case CALLER_RUNS:
                         callerRun = true;
                         break;
-                    case DiscardCurrentTask:
+                    case DISCARD_CURRENT_TASK:
                         break;
-                    case ThrowException:
+                    case THROW_EXCEPTION:
                         throw new TaskOverloadException(
                                 "Task rejected from lite smart executor. " + command.toString());
                     default:
@@ -329,9 +349,14 @@ public class SmartExecutor implements Executor {
 
     private void scheduleNext(WrappedRunnable scheduler) {
         synchronized (staticLock) {
-            boolean suc = runningList.remove(scheduler);
+            boolean suc;
+            synchronized (runningList) {
+                suc = runningList.remove(scheduler);
+            }
             if (!suc) {
-                runningList.clear();
+                synchronized (runningList) {
+                    runningList.clear();
+                }
                 logHelper.logError(
                         "SmartExecutor scheduler remove failed."
                                 + " Please clear all running tasks to avoid unpredictable error : %{public}s",
@@ -341,18 +366,26 @@ public class SmartExecutor implements Executor {
             if (!waitingList.isEmpty()) {
                 WrappedRunnable waitingRun;
                 switch (schedulePolicy) {
-                    case LastInFirstRun:
-                        waitingRun = waitingList.pollLast();
+                    case LAST_IN_FIRST_RUN:
+                        synchronized (waitingList) {
+                            waitingRun = waitingList.pollLast();
+                        }
                         break;
-                    case FirstInFirstRun:
-                        waitingRun = waitingList.pollFirst();
+                    case FIRST_IN_FIRST_RUN:
+                        synchronized (waitingList) {
+                            waitingRun = waitingList.pollFirst();
+                        }
                         break;
                     default:
-                        waitingRun = waitingList.pollLast();
+                        synchronized (waitingList) {
+                            waitingRun = waitingList.pollLast();
+                        }
                         break;
                 }
                 if (waitingRun != null) {
-                    runningList.add(waitingRun);
+                    synchronized (runningList) {
+                        runningList.add(waitingRun);
+                    }
                     threadPool.execute(waitingRun);
                     logHelper.logInfo("Thread %{public}s is executing the next task...",
                         Thread.currentThread().getName());
@@ -376,25 +409,59 @@ public class SmartExecutor implements Executor {
      * cancelled, or interrupted.
      */
     public void awaitAll() {
-        while (!waitingList.isEmpty()) {
-            synchronized (waitingList.getFirst()) {
+        awaitWaitingListEmpty();
+        awaitRunningListEmpty();
+    }
+
+    private void awaitWaitingListEmpty() {
+        boolean isWaitingListEmpty = false;
+        while (!isWaitingListEmpty) {
+            WrappedRunnable firstTaskInWaitList;
+            synchronized (waitingList) {
+                if (!waitingList.isEmpty()) {
+                    firstTaskInWaitList = waitingList.getFirst();
+                } else {
+                    isWaitingListEmpty = true;
+                    continue;
+                }
+            }
+            synchronized (firstTaskInWaitList) {
                 try {
-                    waitingList.getFirst().wait();
+                    if (!firstTaskInWaitList.isCancelledOrCompleted()) {
+                        firstTaskInWaitList.wait();
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     Thread.currentThread().interrupt();
                 }
             }
+
         }
-        while (!runningList.isEmpty()) {
-            synchronized (runningList.getFirst()) {
+    }
+
+    private void awaitRunningListEmpty() {
+        boolean isRunningListEmpty = false;
+        while (!isRunningListEmpty) {
+            WrappedRunnable firstTaskInRunList;
+            synchronized (runningList) {
+                if (!runningList.isEmpty()) {
+                    firstTaskInRunList = runningList.getFirst();
+                } else {
+                    isRunningListEmpty = true;
+                    continue;
+                }
+            }
+            synchronized (firstTaskInRunList) {
                 try {
-                    runningList.getFirst().wait();
+                    if (!firstTaskInRunList.isCancelledOrCompleted()) {
+                        firstTaskInRunList.wait();
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     Thread.currentThread().interrupt();
                 }
             }
+
         }
     }
 
@@ -438,14 +505,26 @@ public class SmartExecutor implements Executor {
         return this;
     }
 
+    /** Gets the current size of the running queue of tasks.
+     *
+     * @return The current size of the running queue.
+     */
     public int getRunningSize() {
         return runningList.size();
     }
 
+    /** Gets the current size of the waiting queue of tasks.
+     *
+     * @return The current size of the waiting queue.
+     */
     public int getWaitingSize() {
         return waitingList.size();
     }
 
+    /** Gets the maximum queue size.
+     *
+     * @return The maximum size of the queue.
+     */
     public int getQueueSize() {
         return queueSize;
     }
@@ -456,6 +535,7 @@ public class SmartExecutor implements Executor {
      *
      * @param queueSize waiting queue size
      * @return this
+     * @throws NullPointerException If the queue size is less than 0.
      */
     public SmartExecutor setQueueSize(int queueSize) {
         if (queueSize < 0) {
@@ -520,6 +600,10 @@ public class SmartExecutor implements Executor {
 
         public boolean isCancelled() {
             return cancelled;
+        }
+
+        public boolean isCancelledOrCompleted() {
+            return cancelled || completed;
         }
 
         public WrappedRunnable(Runnable command) {

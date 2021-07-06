@@ -17,6 +17,8 @@
 package com.litesuits.go;
 
 /**
+ * A type of {@link Runnable} that can be set an integer priority value.
+ *
  * @author MaTianyu
  * @date 2015-04-23
  */

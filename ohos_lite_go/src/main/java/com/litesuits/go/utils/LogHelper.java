@@ -1,12 +1,28 @@
+/*
+ * Copyright (C) 2020-21 Application Library Engineering Group
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.litesuits.go.utils;
 
 import ohos.hiviewdfx.HiLog;
 import ohos.hiviewdfx.HiLogLabel;
 
 /**
- * Encapsulates the HiLog.info and HiLog.error functions,
- * but doesn't use the HiLog library or a HiLogLabel object until explicitly called for,
- * so that by disabling logging facility, the code may run on pure Java environments.
+ * This is a convenience class that encapsulates the OHOS info and error logging functions,
+ * but only accesses the {@link HiLog} library or create a {@link HiLogLabel} object when explicitly called for.
+ * Logging can be toggled externally using setEnabled. By disabling, logger-dependent code can run in pure JRE for tests
  */
 public class LogHelper {
 
@@ -21,12 +37,30 @@ public class LogHelper {
         logTag = tag;
     }
 
+    /**
+     * Send an info log, with the given string format and arguments.
+     *
+     * @param messageFormat Indicates a constant format string, including the parameter type and privacy identifier.
+     *                     If no privacy identifier is added, the parameter is considered to be
+     *                      <strong>private</strong>.
+     * @param args Indicates the parameter list corresponding to the parameter type in the format string. The number and
+     *            type of parameters must be mapped onto the identifier in the format string.
+     */
     public void logInfo(String messageFormat, Object... args) {
         if (enabled) {
             HiLog.info(getOrCreateLogLabel(), messageFormat, args);
         }
     }
 
+    /**
+     * Send an error log, with the given string format and arguments.
+     *
+     * @param messageFormat Indicates a constant format string, including the parameter type and privacy identifier.
+     *                     If no privacy identifier is added, the parameter is considered to be
+     *                      <strong>private</strong>.
+     * @param args Indicates the parameter list corresponding to the parameter type in the format string. The number and
+     *            type of parameters must be mapped onto the identifier in the format string.
+     */
     public void logError(String messageFormat, Object... args) {
         if (enabled) {
             HiLog.error(getOrCreateLogLabel(), messageFormat, args);

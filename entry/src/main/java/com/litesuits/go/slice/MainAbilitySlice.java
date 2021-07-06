@@ -1,5 +1,10 @@
 package com.litesuits.go.slice;
 
+import ohos.aafwk.ability.AbilitySlice;
+import ohos.aafwk.content.Intent;
+import ohos.agp.components.ListContainer;
+import ohos.hiviewdfx.HiLog;
+import ohos.hiviewdfx.HiLogLabel;
 import com.litesuits.go.ListItemProvider;
 import com.litesuits.go.OverloadPolicy;
 import com.litesuits.go.ResourceTable;
@@ -9,12 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import ohos.aafwk.ability.AbilitySlice;
-import ohos.aafwk.content.Intent;
-import ohos.agp.components.ListContainer;
-import ohos.hiviewdfx.HiLog;
-import ohos.hiviewdfx.HiLogLabel;
 
+/**
+ * This ability slice displays a list of operations that may be performed by the LiteGo library.
+ */
 public class MainAbilitySlice extends AbilitySlice {
 
     // OHOS Log parameters
@@ -77,10 +80,10 @@ public class MainAbilitySlice extends AbilitySlice {
 
             // If number of tasks exceeds number of cores,
             // decide how to deal with the tasks when they exit the waiting queue
-            mainExecutor.setSchedulePolicy(SchedulePolicy.LastInFirstRun);
+            mainExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
 
             // If number of tasks exceed the length of the waiting queue, decide to discard oldest task in queue
-            mainExecutor.setOverloadPolicy(OverloadPolicy.DiscardOldTaskInQueue);
+            mainExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
             HiLog.info(infoLabel, "Smart Executor has been Initialized.");
         }
     }
@@ -103,6 +106,7 @@ public class MainAbilitySlice extends AbilitySlice {
                         Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
+                        Thread.currentThread().interrupt();
                     }
                     HiLog.info(infoLabel, " Runnable end!  thread id: %{public}d",
                             Thread.currentThread().getId());
@@ -145,11 +149,11 @@ public class MainAbilitySlice extends AbilitySlice {
                 // After the number of tasks exceeds [Maximum Concurrent Number], it will
                 // automatically enter the [Waiting Queue], wait for the completion of the current
                 // execution task and enter the execution state according to the strategy: last-in first
-                smallExecutor.setSchedulePolicy(SchedulePolicy.LastInFirstRun);
+                smallExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
 
                 // When the number of new tasks added subsequently exceeds the size of the
                 // [waiting queue], the overload strategy is executed: the oldest task in the queue is discarded.
-                smallExecutor.setOverloadPolicy(OverloadPolicy.DiscardOldTaskInQueue);
+                smallExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
 
                 smallExecutor.setLoggerEnabled(true);
 
@@ -159,9 +163,10 @@ public class MainAbilitySlice extends AbilitySlice {
                     smallExecutor.execute(() -> {
                         HiLog.info(infoLabel, " TASK %{public}d is running now ----------->", j);
                         try {
-                            Thread.sleep(j * 200);
+                            Thread.sleep(j * (long) 200);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
+                            Thread.currentThread().interrupt();
                         }
                     });
                 }
@@ -173,6 +178,7 @@ public class MainAbilitySlice extends AbilitySlice {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
+                        Thread.currentThread().interrupt();
                     }
                 });
                 boolean cancelResult = future.cancel(false);
