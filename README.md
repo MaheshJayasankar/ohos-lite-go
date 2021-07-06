@@ -26,7 +26,7 @@ You can define a strategy for processing new requests after the waiting queue is
 ****How to add the dependency
 
 ## Usage
-initialization:
+Example:
 
 ```java
 // put in 4 tasks at once
@@ -56,7 +56,7 @@ future.cancel(false);
 
 
 
-The above code is designed to be able to concurrently "2" threads at the same time. After the concurrency is fully loaded, the waiting queue can accommodate "2" threads. The late tasks in the queue are executed first, and the new tasks will be discarded when the waiting queue is full. The oldest task.
+The above code is designed to be able to concurrently run 2 threads at the same time. After the concurrency is fully loaded, the waiting queue can accommodate 2 additional tasks. The oldest tasks in the queue are executed first, and in the case the waiting queue is attempted to be filled beyond its maximum capacity, the oldest task from the queue is discarded.
 
 Test the situation of multiple threads concurrency:
 
