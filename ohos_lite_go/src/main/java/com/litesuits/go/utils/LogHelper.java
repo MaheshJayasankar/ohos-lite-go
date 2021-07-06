@@ -75,8 +75,22 @@ public class LogHelper {
         return logLabel;
     }
 
+    /**
+     * Set this {@link LogHelper} object to be able to or unable to write logs.
+     *
+     * @param enabled If {@code true}, the {@code logInfo} and {@code logError} methods will perform logging. If
+     *                false, these functions will have no effect.
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
+    /**
+     * Returns whether or not this object is allowed to write logs.
+     *
+     * @return Whether or not this object is allowed to write logs.
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
 }

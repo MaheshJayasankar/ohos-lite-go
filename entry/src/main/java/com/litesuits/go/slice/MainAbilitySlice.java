@@ -152,7 +152,7 @@ public class MainAbilitySlice extends AbilitySlice {
                 smallExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
 
                 // When the number of new tasks added subsequently exceeds the size of the
-                // [waiting queue], the overload strategy is executed: the oldest task in the queue is discarded.
+                // waiting queue, the overload strategy is executed: the oldest task in the queue is discarded.
                 smallExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
 
                 smallExecutor.setLoggerEnabled(true);

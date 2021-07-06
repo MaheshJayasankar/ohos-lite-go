@@ -12,7 +12,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertThrows;
 
 public class SmartExecutorTest {
     @BeforeClass
@@ -20,16 +19,7 @@ public class SmartExecutorTest {
     {
         GoUtil.setTestingEnv(true);
         int coresCount = GoUtil.getCoresCount();
-        assert(coresCount > 0);
-    }
-
-    @Test
-    public void testGoUtil(){
-        SmartExecutor smartExecutor = new SmartExecutor();
-        int goUtilCoresCount = GoUtil.getCoresCount();
-        int smartExecutorCoreSize = smartExecutor.getCoreSize();
-        assertTrue(goUtilCoresCount > 0);
-        assertEquals(goUtilCoresCount, smartExecutorCoreSize);
+        assertTrue(coresCount > 0);
     }
     @Test
     public void testSmartExecutorInit()
