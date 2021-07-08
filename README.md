@@ -1,4 +1,4 @@
-# ohos-lite-go
+# LiteGo
 LiteGo is a Java-based asynchronous concurrency library. It has a smart executor, which can be freely set the maximum number of concurrent tasks, and the number of threads in waiting queue. It can also set waiting policies and overload strategies. LiteGo can directly utilise Runnable, Callable, FutureTask and other types of implementations to run a task. Its core component is the "SmartExecutor", which can be used as the sole component in the Application that supports asynchronous concurrency. There can be multiple instances of SmartExecutor in an Application, and each instance has complete "independence", in the sense of independent core concurrency, queuing and waiting indicators, independent task scheduling and waiting list overloading strategy. However, all instances share a thread pool. This mechanism not only meets the independent needs of different modules for thread control and task scheduling, but also shares a pool resource to save overhead, saves resources and reuses threads to the greatest extent, and helps improve performance.
 
 # Source
@@ -23,35 +23,45 @@ You can define a strategy for processing new requests after the waiting queue is
 - Throw an exception (interrupt the current thread)
 
 ## Dependency
-****How to add the dependency
+1. For using LiteGo module in sample app, include the source code and add the below dependencies in entry/build.gradle to generate hap/support.har.
+```
+	dependencies {
+		implementation project(':ohos_lite_go')
+        	implementation fileTree(dir: 'libs', include: ['*.har'])
+        	testCompile 'junit:junit:4.12'
+	}
+```
+2. For using module in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
+```
+	dependencies {
+		implementation fileTree(dir: 'libs', include: ['*.har'])
+		testCompile 'junit:junit:4.12'
+	}
+
+```
 
 ## Usage
 Example:
 
 ```java
-// put in 4 tasks at once
-for (int i = 0; i <4; i++) {
-     final int j = i;
-     smallExecutor.execute(new Runnable() {
-         @Override
-         public void run() {
-             Hilog.info(LABEL, "TASK" + j + "is running now ----------->");
-             Thread.sleep(j * 200);
-         }
-     });
-}
+ // Create a SmartExecutor object with default parameters. They are specified in the following lines
+ SmartExecutor smartExecutor = new SmartExecutor();
 
-// Put in another task that may need to be cancelled
-Future future = smallExecutor.submit(new Runnable() {
-     @Override
-     public void run() {
-         Hilog.info(LABEL, "TASK 4 will be canceled... ------------>");
-         Thread.sleep(1000);
-     }
-});
+ // Number of concurrent threads at the same time, recommended core size is CPU count
+ smartExecutor.setCoreSize(2);
 
-// Cancel this task at the right time
-future.cancel(false);
+ // adjust maximum capacity of waiting queue by yourself or based on device performance
+ smartExecutor.setQueueSize(2);
+
+ // After the number of tasks exceeds Maximum Number of Concurrent tasks (core size), any new tasks
+ // automatically enter the Waiting Queue and wait for the completion of the currently executing tasks.
+ // After a executing task finishes, a task from the waiting queue enters the execution state according
+ // to the strategy: last-in first-run
+ smartExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
+
+ // When the number of new tasks added subsequently exceeds the maximum capacity of the waiting queue,
+ // the overload strategy is executed. In this case, the oldest task in the queue is discarded.
+ smartExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
 ```
 
 
@@ -64,21 +74,24 @@ Test the situation of multiple threads concurrency:
 // put in 4 tasks at once
 for (int i = 0; i <4; i++) {
     final int j = i;
-    smallExecutor.execute(new Runnable() {
-        @Override
-        public void run() {
-            HttpLog.i(TAG, "TASK" + j + "is running now ----------->");
-            SystemClock.sleep(j * 200);
+    smartExecutor.execute(() -> {
+        HiLog.info(LABEL, " TASK %{public}d is running now ----------->", j);
+        try {
+            Thread.sleep(j * (long) 200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
     });
 }
-
-// Put in another task that may need to be cancelled
-Future future = smallExecutor.submit(new Runnable() {
-    @Override
-    public void run() {
-        HttpLog.i(TAG, "TASK 4 will be canceled... ------------>");
-        SystemClock.sleep(1000);
+// A new task is added to the list, but it is immediately canceled.
+Future<?> future = smartExecutor.submit(() -> {
+    HiLog.info(LABEL, " TASK 4 will be cancelled ... ------------>");
+    try {
+        Thread.sleep(1000);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+        Thread.currentThread().interrupt();
     }
 });
 
