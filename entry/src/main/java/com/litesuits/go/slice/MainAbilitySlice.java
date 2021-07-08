@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2020-21 Application Library Engineering Group
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.litesuits.go.slice;
 
 import ohos.aafwk.ability.AbilitySlice;
@@ -23,7 +39,7 @@ public class MainAbilitySlice extends AbilitySlice {
     // OHOS Log parameters
     private static final String TAG = MainAbilitySlice.class.getSimpleName();
     private static final int DOMAIN = 0x00101;
-    private final HiLogLabel infoLabel = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
+    private static final HiLogLabel LABEL = new HiLogLabel(HiLog.LOG_APP, DOMAIN, TAG);
     private static final int LIST_ITEM_COUNT = 4;
     protected SmartExecutor mainExecutor;
 
@@ -84,7 +100,7 @@ public class MainAbilitySlice extends AbilitySlice {
 
             // If number of tasks exceed the length of the waiting queue, decide to discard oldest task in queue
             mainExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
-            HiLog.info(infoLabel, "Smart Executor has been Initialized.");
+            HiLog.info(LABEL, "Smart Executor has been Initialized.");
         }
     }
 
@@ -97,10 +113,10 @@ public class MainAbilitySlice extends AbilitySlice {
     private void clickTestItem(final int which) {
         switch (which) {
             case 0:
-                HiLog.info(infoLabel, "Trying to submit runnable.");
+                HiLog.info(LABEL, "Trying to submit runnable.");
                 // 0. Submit Runnable
                 mainExecutor.submit(() -> {
-                    HiLog.info(infoLabel, " Runnable start!  thread id: %{public}d",
+                    HiLog.info(LABEL, " Runnable start!  thread id: %{public}d",
                             Thread.currentThread().getId());
                     try {
                         Thread.sleep(2000);
@@ -108,7 +124,7 @@ public class MainAbilitySlice extends AbilitySlice {
                         e.printStackTrace();
                         Thread.currentThread().interrupt();
                     }
-                    HiLog.info(infoLabel, " Runnable end!  thread id: %{public}d",
+                    HiLog.info(LABEL, " Runnable end!  thread id: %{public}d",
                             Thread.currentThread().getId());
                 });
                 break;
@@ -116,7 +132,7 @@ public class MainAbilitySlice extends AbilitySlice {
             case 1:
                 // 1. Submit FutureTask
                 FutureTask<String> futureTask = new FutureTask<>(() -> {
-                    HiLog.info(infoLabel, " FutureTask thread id: %{public}d",
+                    HiLog.info(LABEL, " FutureTask thread id: %{public}d",
                             Thread.currentThread().getId());
                     return "FutureTask";
                 });
@@ -126,7 +142,7 @@ public class MainAbilitySlice extends AbilitySlice {
             case 2:
                 // 2. Submit Callable
                 mainExecutor.submit(() -> {
-                    HiLog.info(infoLabel, " Callable thread id: %{public}d",
+                    HiLog.info(LABEL, " Callable thread id: %{public}d",
                             Thread.currentThread().getId());
                     return "Callable";
                 });
@@ -136,32 +152,32 @@ public class MainAbilitySlice extends AbilitySlice {
             case 3:
                 // 3. Strategy Test
 
-                // set this temporary parameter, just for test
-                SmartExecutor smallExecutor = new SmartExecutor();
+                // Create a SmartExecutor object with default parameters. They are specified in the following lines
+                SmartExecutor smartExecutor = new SmartExecutor();
 
+                // Number of concurrent threads at the same time, recommended core size is CPU count
+                smartExecutor.setCoreSize(2);
 
-                // number of concurrent threads at the same time, recommended core size is CPU count
-                smallExecutor.setCoreSize(2);
+                // adjust maximum capacity of waiting queue by yourself or based on device performance
+                smartExecutor.setQueueSize(2);
 
-                // adjust maximum number of waiting queue size by yourself or based on phone performance
-                smallExecutor.setQueueSize(2);
+                // After the number of tasks exceeds Maximum Number of Concurrent tasks (core size), any new tasks
+                // automatically enter the Waiting Queue and wait for the completion of the currently executing tasks.
+                // After a executing task finishes, a task from the waiting queue enters the execution state according
+                // to the strategy: last-in first-run
+                smartExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
 
-                // After the number of tasks exceeds [Maximum Concurrent Number], it will
-                // automatically enter the [Waiting Queue], wait for the completion of the current
-                // execution task and enter the execution state according to the strategy: last-in first
-                smallExecutor.setSchedulePolicy(SchedulePolicy.LAST_IN_FIRST_RUN);
+                // When the number of new tasks added subsequently exceeds the maximum capacity of the waiting queue,
+                // the overload strategy is executed. In this case, the oldest task in the queue is discarded.
+                smartExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
 
-                // When the number of new tasks added subsequently exceeds the size of the
-                // waiting queue, the overload strategy is executed: the oldest task in the queue is discarded.
-                smallExecutor.setOverloadPolicy(OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
-
-                smallExecutor.setLoggerEnabled(true);
+                smartExecutor.setLoggerEnabled(true);
 
                 // put in 4 tasks at once
                 for (int i = 0; i < 4; i++) {
                     final int j = i;
-                    smallExecutor.execute(() -> {
-                        HiLog.info(infoLabel, " TASK %{public}d is running now ----------->", j);
+                    smartExecutor.execute(() -> {
+                        HiLog.info(LABEL, " TASK %{public}d is running now ----------->", j);
                         try {
                             Thread.sleep(j * (long) 200);
                         } catch (InterruptedException e) {
@@ -172,8 +188,8 @@ public class MainAbilitySlice extends AbilitySlice {
                 }
 
                 // A new task is added to the list, but it is immediately canceled.
-                Future<?> future = smallExecutor.submit(() -> {
-                    HiLog.info(infoLabel, " TASK 4 should have been cancelled ... ------------>");
+                Future<?> future = smartExecutor.submit(() -> {
+                    HiLog.info(LABEL, " TASK 4 will be cancelled ... ------------>");
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
@@ -182,7 +198,7 @@ public class MainAbilitySlice extends AbilitySlice {
                     }
                 });
                 boolean cancelResult = future.cancel(false);
-                HiLog.info(infoLabel, "TASK 4 was cancelled successfully? %{public}s", cancelResult);
+                HiLog.info(LABEL, "TASK 4 was cancelled successfully? %{public}s", cancelResult);
                 break;
             default: break;
         }
