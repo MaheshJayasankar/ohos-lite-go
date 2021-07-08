@@ -30,7 +30,7 @@ You can define a strategy for processing new requests after the waiting queue is
         	testCompile 'junit:junit:4.12'
 	}
 ```
-2. For using module in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
+2. For using LiteGo module in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
 ```
 	dependencies {
 		implementation fileTree(dir: 'libs', include: ['*.har'])
