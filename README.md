@@ -27,7 +27,6 @@ You can define a strategy for processing new requests after the waiting queue is
 ```
 	dependencies {
 		implementation project(':ohos_lite_go')
-        	implementation fileTree(dir: 'libs', include: ['*.har'])
         	testCompile 'junit:junit:4.12'
 	}
 ```
