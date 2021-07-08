@@ -1,5 +1,4 @@
-apply plugin: 'com.huawei.ohos.hap'
-apply plugin: 'com.huawei.ohos.decctest'
+apply plugin: 'com.huawei.ohos.library'
 ohos {
     compileSdkVersion 5
     defaultConfig {
@@ -17,8 +16,5 @@ ohos {
 }
 
 dependencies {
-    implementation project(path: ':ohos_lite_go')
-}
-decc {
-    supportType = ['html','xml']
+    testImplementation 'junit:junit:4.13'
 }
