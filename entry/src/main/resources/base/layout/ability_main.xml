@@ -20,11 +20,11 @@
     <Text
             ohos:id="$+id:sub_title"
             ohos:text_color="#1f1f1f"
-            ohos:text="$string:sub_title"
             ohos:width="match_parent"
             ohos:height="match_content"
             ohos:bottom_margin="10vp"
-            ohos:text_size="16fp" />
+            ohos:text_size="12fp"
+            ohos:left_margin="8vp"/>
 
     <ListContainer
             ohos:id="$+id:list_container"

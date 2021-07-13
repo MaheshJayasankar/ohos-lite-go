@@ -19,6 +19,7 @@ package com.litesuits.go.slice;
 import ohos.aafwk.ability.AbilitySlice;
 import ohos.aafwk.content.Intent;
 import ohos.agp.components.ListContainer;
+import ohos.agp.components.Text;
 import ohos.hiviewdfx.HiLog;
 import ohos.hiviewdfx.HiLogLabel;
 import com.litesuits.go.ListItemProvider;
@@ -62,6 +63,9 @@ public class MainAbilitySlice extends AbilitySlice {
     }
 
     private void initViews() {
+        Text subtitleText = (Text) findComponentById(ResourceTable.Id_sub_title);
+        subtitleText.setText(String.format(getString(ResourceTable.String_sub_title), TAG));
+
         ListContainer listContainer = (ListContainer) findComponentById(ResourceTable.Id_list_container);
         List<Integer> list = getData();
         ListItemProvider listItemProvider = new ListItemProvider(list, this);

@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2020-21 Application Library Engineering Group
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.litesuits.go;
 
 import com.litesuits.go.utils.GoUtil;
@@ -66,6 +82,7 @@ public class SmartExecutorTest {
     }
     @Test
     public void testCancelWaitingTask() {
+        // Add 3 tasks, and then cancel the last one. Confirm if task was successfully cancelled.
         SmartExecutor smartExecutor = new SmartExecutor(2, 2);
         List<Integer> tasksStartedOrder = new ArrayList<>();
         List<Integer> tasksFinishedOrder = new ArrayList<>();
@@ -92,8 +109,10 @@ public class SmartExecutorTest {
         smartExecutor.awaitAll();
         try {
             result = future.get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+        } catch (ExecutionException ignored) {
+            // Exception is ignored
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         assertEquals(Integer.valueOf(1), result);
     }
@@ -136,7 +155,7 @@ public class SmartExecutorTest {
 
             @Override
             public void run() {
-
+                // Left empty so that the task finishes execution immediately.
             }
         });
         smartExecutor.awaitAll();
@@ -154,6 +173,7 @@ public class SmartExecutorTest {
 
     @Test
     public void testAwaitAll() {
+        // Execute 3 tasks, and await their completion. Test whether no tasks are still running after waiting.
         SmartExecutor smartExecutor = new SmartExecutor(2,2);
         smartExecutor.execute(() -> {});
         smartExecutor.execute(() -> {});
@@ -208,7 +228,7 @@ public class SmartExecutorTest {
     @Test
     public void testSetQueueSizeThrowException() {
         SmartExecutor smartExecutor = new SmartExecutor(2,1);
-        assertThrows(NullPointerException.class,()->{smartExecutor.setQueueSize(-1);});
+        assertThrows(NullPointerException.class,()-> smartExecutor.setQueueSize(-1));
     }
 
     @Test
@@ -238,6 +258,9 @@ public class SmartExecutorTest {
     }
     @Test
     public void testOverloadPolicyDiscardOld() {
+        // Overload Policy Discard Old Task will discard oldest task in waiting queue when new one is added.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // Then the tasks 2,3 are discarded by policy, and the result is that tasks 0,1,4,5 are completed.
         List<Integer> expectedTaskFinishOrder = Arrays.asList(0, 1, 4, 5);
         TaskListExecutionResult taskSequenceResults = runSequenceOfTestTasks(6, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
         List<Integer> observedTaskFinishOrder = taskSequenceResults.getTasksFinishedOrder();
@@ -246,6 +269,9 @@ public class SmartExecutorTest {
     }
     @Test
     public void testOverloadPolicyDiscardNew() {
+        // Overload Policy Discard New Task will discard the most recent task in waiting queue when new one is added.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // Then the tasks 3,4 are discarded by policy, and the result is that tasks 0,1,2,5 are completed.
         List<Integer> expectedTaskFinishOrder = Arrays.asList(0,1,2,5);
         TaskListExecutionResult taskSequenceResults =  runSequenceOfTestTasks(6, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.DISCARD_NEW_TASK_IN_QUEUE);
         List<Integer> observedTaskFinishOrder = taskSequenceResults.getTasksFinishedOrder();
@@ -254,6 +280,9 @@ public class SmartExecutorTest {
     }
     @Test
     public void testOverloadPolicyDiscardCurrent() {
+        // Overload Policy Discard Current Task will discard the task to be added if the queue is full.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // Then the tasks 4,5 are discarded by policy, and the result is that tasks 0,1,2,3 are completed.
         List<Integer> expectedTaskFinishOrder = Arrays.asList(0,1,2,3);
         TaskListExecutionResult taskSequenceResults =  runSequenceOfTestTasks(6, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.DISCARD_CURRENT_TASK);
         List<Integer> observedTaskFinishOrder = taskSequenceResults.getTasksFinishedOrder();
@@ -262,6 +291,11 @@ public class SmartExecutorTest {
     }
     @Test
     public void testOverloadPolicyCallerRuns() {
+        // Overload Policy Discard Caller Runs will run the task to be added on the current thread.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // The task 4 is run on the current thread, freezing the thread until completion of task 4. Meanwhile, the rest
+        // of the tasks in the waiting list will finish execution, providing space in the queue for the next added task
+        // The result is that all tasks will execute, as no task is discarded
         List<Integer> expectedTaskFinishOrder = Arrays.asList(0,1,2,3,4,5);
         TaskListExecutionResult taskSequenceResults =  runSequenceOfTestTasks(6, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.CALLER_RUNS);
         List<Integer> observedTaskFinishOrder = taskSequenceResults.getTasksFinishedOrder();
@@ -270,12 +304,18 @@ public class SmartExecutorTest {
     }
     @Test
     public void testOverloadPolicyThrowException() {
+        // TaskOverloadException, a subclass of RuntimeException is thrown in case a task is attempted to be added to
+        // the already full queue.
         assertThrows(RuntimeException.class, ()->
                 runSequenceOfTestTasks(5, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.THROW_EXCEPTION
         ));
     }
     @Test
     public void testSchedulePolicyFirstInFirstRun() {
+        // Schedule Policy Discard First in First Run will execute the first added task in the waiting queue first.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // With the default overload policy, only tasks 4 and 5 will remain in the queue. Out of this, task 4 starts
+        // execution before task 5 due to the fact that it was added first.
         List<Integer> expectedTaskStartOrder = Arrays.asList(0, 1, 4, 5);
         TaskListExecutionResult taskSequenceResults = runSequenceOfTestTasks(6, SchedulePolicy.FIRST_IN_FIRST_RUN, OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
         List<Integer> observedTaskStartOrder = taskSequenceResults.getTasksStartedOrder();
@@ -284,6 +324,10 @@ public class SmartExecutorTest {
     }
     @Test
     public void testSchedulePolicyLastInFirstRun() {
+        // Schedule Policy Discard Last in First Run will execute the last added task in the waiting queue first.
+        // If tasks are added in sequence of 0,1,2,3,4,5. With 2 tasks running concurrently and 2 maximum tasks in queue
+        // With the default overload policy, only tasks 4 and 5 will remain in the queue. Out of this, task 5 starts
+        // execution before task 4 due to the fact that it was added last.
         List<Integer> expectedTaskStartOrder = Arrays.asList(0, 1, 5, 4);
         TaskListExecutionResult taskSequenceResults =  runSequenceOfTestTasks(6, SchedulePolicy.LAST_IN_FIRST_RUN, OverloadPolicy.DISCARD_OLD_TASK_IN_QUEUE);
         List<Integer> observedTaskStartOrder = taskSequenceResults.getTasksStartedOrder();
@@ -291,6 +335,16 @@ public class SmartExecutorTest {
         assertEquals(expectedTaskStartOrder, observedTaskStartOrder);
     }
 
+    /**
+     * Method used to define a smart executor with the given SchedulePolicy and OverloadPolicy, with a core size of 2
+     * and waiting queue size of 2, and provide the results.
+     *
+     * @param numTasks The number of tasks to be executed. Tasks are TestRunnable instances.
+     * @param schedulePolicy SchedulePolicy to use by the SmartExecutor
+     * @param overloadPolicy OverloadPolicy to use by the SmartExecutor
+     * @return The result of the task execution, containing the order of start of execution of tasks and the order of
+     *         end of execution of tasks.
+     */
     private TaskListExecutionResult runSequenceOfTestTasks(int numTasks, SchedulePolicy schedulePolicy, OverloadPolicy overloadPolicy) {
         SmartExecutor smartExecutor = new SmartExecutor(2,2);
         smartExecutor.setSchedulePolicy(schedulePolicy);
@@ -298,6 +352,13 @@ public class SmartExecutorTest {
 
         return executeListOfTasks(smartExecutor, numTasks);
     }
+
+    /**
+     * Execute a list of tasks using the TestRunnable class.
+     * @param smartExecutor The SmartExecutor object used to schedule the execution of the tasks
+     * @param numTasks The number of tasks to be executed
+     * @return The results of the task execution
+     */
     private TaskListExecutionResult executeListOfTasks(SmartExecutor smartExecutor, int numTasks) {
 
         List<Integer> tasksStartedOrder = new ArrayList<>();
@@ -310,7 +371,7 @@ public class SmartExecutorTest {
             try {
                 TimeUnit.MILLISECONDS.sleep(25);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
             }
         }
 
@@ -328,7 +389,7 @@ public class SmartExecutorTest {
         private final List<Integer> tasksFinishedOrder;
         private final List<Integer> tasksStartedOrder;
         private final int taskIndex;
-        private final int baseRunTime = 250;
+        private static final int BASE_RUN_TIME = 250;
 
         public TestRunnable(List<Integer> tasksStartedOrder, List<Integer> tasksFinishedOrder, int taskIndex) {
             this.tasksStartedOrder = tasksStartedOrder;
@@ -342,10 +403,10 @@ public class SmartExecutorTest {
                 synchronized (tasksStartedOrder){
                     tasksStartedOrder.add(taskIndex);
                 }
-                int sleepTime = baseRunTime * (taskIndex * taskIndex + 1);
+                int sleepTime = BASE_RUN_TIME * (taskIndex * taskIndex + 1);
                 TimeUnit.MILLISECONDS.sleep(sleepTime);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
             } finally {
                 synchronized (tasksFinishedOrder) {
                     tasksFinishedOrder.add(taskIndex);
@@ -354,6 +415,9 @@ public class SmartExecutorTest {
         }
     }
 
+    /**
+     * Stores the results of the execution of a sequence of tasks for the scheduling and overloading test cases.
+     */
     private static class TaskListExecutionResult{
         private final List<Integer> tasksStartedOrder;
         private final List<Integer> tasksFinishedOrder;

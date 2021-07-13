@@ -37,7 +37,7 @@ public enum OverloadPolicy {
      */
     DISCARD_CURRENT_TASK,
     /**
-     * Run the task to be added directly without adding it to the queue. This may cause unpredictable behaviour.
+     * Run the task to be added directly on the current thread.
      */
     CALLER_RUNS,
     /**

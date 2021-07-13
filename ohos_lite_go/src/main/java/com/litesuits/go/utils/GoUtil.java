@@ -12,7 +12,7 @@ public class GoUtil {
 
     private GoUtil() {}
 
-    private static int CPU_CORES = 0;
+    private static int cpuCores = 0;
 
     private static boolean testingEnv;
 
@@ -30,17 +30,18 @@ public class GoUtil {
      */
     public static int getCoresCount() {
         if (isTestingEnv()) {
-            return getProcessorsCount();
+            cpuCores = getProcessorsCount();
+            return cpuCores;
         }
-        if (CPU_CORES > 0) {
-            return CPU_CORES;
+        if (cpuCores > 0) {
+            return cpuCores;
         }
         int coreCount = getAvailableCores().length;
         if (coreCount <= 0) {
             return getProcessorsCount();
         }
-        CPU_CORES = coreCount;
-        return CPU_CORES;
+        cpuCores = coreCount;
+        return cpuCores;
     }
 
     public static boolean isTestingEnv() {

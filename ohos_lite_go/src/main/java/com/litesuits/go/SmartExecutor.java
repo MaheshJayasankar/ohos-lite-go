@@ -131,11 +131,11 @@ public class SmartExecutor implements Executor {
                 new SynchronousQueue<>(),
                 new ThreadFactory() {
                     static final String NAME = "lite-";
-                    AtomicInteger IDS = new AtomicInteger(1);
+                    AtomicInteger ids = new AtomicInteger(1);
 
                     @Override
                     public Thread newThread(Runnable r) {
-                        return new Thread(r, NAME + IDS.getAndIncrement());
+                        return new Thread(r, NAME + ids.getAndIncrement());
                     }
                 },
                 new ThreadPoolExecutor.DiscardPolicy());
@@ -347,62 +347,6 @@ public class SmartExecutor implements Executor {
         }
     }
 
-    private void scheduleNext(WrappedRunnable scheduler) {
-        synchronized (staticLock) {
-            boolean suc;
-            synchronized (runningList) {
-                suc = runningList.remove(scheduler);
-            }
-            if (!suc) {
-                synchronized (runningList) {
-                    runningList.clear();
-                }
-                logHelper.logError(
-                        "SmartExecutor scheduler remove failed."
-                                + " Please clear all running tasks to avoid unpredictable error : %{public}s",
-                        scheduler);
-
-            }
-            if (!waitingList.isEmpty()) {
-                WrappedRunnable waitingRun;
-                switch (schedulePolicy) {
-                    case LAST_IN_FIRST_RUN:
-                        synchronized (waitingList) {
-                            waitingRun = waitingList.pollLast();
-                        }
-                        break;
-                    case FIRST_IN_FIRST_RUN:
-                        synchronized (waitingList) {
-                            waitingRun = waitingList.pollFirst();
-                        }
-                        break;
-                    default:
-                        synchronized (waitingList) {
-                            waitingRun = waitingList.pollLast();
-                        }
-                        break;
-                }
-                if (waitingRun != null) {
-                    synchronized (runningList) {
-                        runningList.add(waitingRun);
-                    }
-                    threadPool.execute(waitingRun);
-                    logHelper.logInfo("Thread %{public}s is executing the next task...",
-                        Thread.currentThread().getName());
-
-
-                } else {
-                    logHelper.logError("SmartExecutor got a NULL task from waiting queue: %{public}s",
-                            Thread.currentThread().getName());
-
-                }
-            } else {
-                logHelper.logInfo("SmartExecutor: All tasks are completed. Current thread: %{public}s",
-                        Thread.currentThread().getName());
-
-            }
-        }
-    }
 
     /**
      * Function will await the current thread until ALL tasks in the waiting list AND running list are completed,
@@ -431,7 +375,6 @@ public class SmartExecutor implements Executor {
                         firstTaskInWaitList.wait();
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
                     Thread.currentThread().interrupt();
                 }
             }
@@ -457,7 +400,6 @@ public class SmartExecutor implements Executor {
                         firstTaskInRunList.wait();
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
                     Thread.currentThread().interrupt();
                 }
             }
@@ -635,6 +577,63 @@ public class SmartExecutor implements Executor {
             synchronized (this) {
                 cancelled = true;
                 notifyAll();
+            }
+        }
+
+        private void scheduleNext(WrappedRunnable scheduler) {
+            synchronized (staticLock) {
+                boolean suc;
+                synchronized (runningList) {
+                    suc = runningList.remove(scheduler);
+                }
+                if (!suc) {
+                    synchronized (runningList) {
+                        runningList.clear();
+                    }
+                    logHelper.logError(
+                            "SmartExecutor scheduler remove failed."
+                                    + " Please clear all running tasks to avoid unpredictable error : %{public}s",
+                            scheduler);
+
+                }
+                if (!waitingList.isEmpty()) {
+                    WrappedRunnable waitingRun;
+                    switch (schedulePolicy) {
+                        case LAST_IN_FIRST_RUN:
+                            synchronized (waitingList) {
+                                waitingRun = waitingList.pollLast();
+                            }
+                            break;
+                        case FIRST_IN_FIRST_RUN:
+                            synchronized (waitingList) {
+                                waitingRun = waitingList.pollFirst();
+                            }
+                            break;
+                        default:
+                            synchronized (waitingList) {
+                                waitingRun = waitingList.pollLast();
+                            }
+                            break;
+                    }
+                    if (waitingRun != null) {
+                        synchronized (runningList) {
+                            runningList.add(waitingRun);
+                        }
+                        threadPool.execute(waitingRun);
+                        logHelper.logInfo("Thread %{public}s is executing the next task...",
+                                Thread.currentThread().getName());
+
+
+                    } else {
+                        logHelper.logError("SmartExecutor got a NULL task from waiting queue: %{public}s",
+                                Thread.currentThread().getName());
+
+                    }
+                } else {
+                    logHelper.logInfo("SmartExecutor: All tasks are completed. Current thread: %{public}s",
+                            Thread.currentThread().getName());
+
+                }
             }
         }
     }
